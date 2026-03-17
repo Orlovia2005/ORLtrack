@@ -28,9 +28,7 @@ namespace plt.Controllers
             if (string.IsNullOrEmpty(userId))
                 return null;
 
-            _cachedUser = await _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Id == int.Parse(userId));
+            _cachedUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == int.Parse(userId));
 
             return _cachedUser;
         }

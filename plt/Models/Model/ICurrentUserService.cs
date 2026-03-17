@@ -36,9 +36,7 @@ namespace plt.Models.Model
 
             if (UserId == null) return null;
 
-            _cachedUser = await _context.Users
-                .Include(u => u.Role) // чтобы сразу загрузить роль
-                .FirstOrDefaultAsync(u => u.Id == UserId);
+            _cachedUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == UserId);
 
             return _cachedUser;
         }
