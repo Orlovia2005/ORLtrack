@@ -714,6 +714,12 @@ button.btn:hover,
     margin-bottom: 18px;
 }
 
+.student-card-right {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+}
+
 .student-card-headline {
     display: flex;
     align-items: center;
@@ -735,6 +741,42 @@ button.btn:hover,
     padding: 14px 16px;
     border-radius: 20px;
     text-align: right;
+}
+
+.risk-pill {
+    min-width: 130px;
+    padding: 14px 16px;
+    border-radius: 20px;
+}
+
+.risk-pill span {
+    display: block;
+    font-size: 0.78rem;
+    opacity: 0.82;
+}
+
+.risk-pill strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 1.2rem;
+}
+
+.risk-low {
+    background: rgba(21, 160, 108, 0.16);
+    color: #ddfff2;
+    border: 1px solid rgba(87, 221, 168, 0.24);
+}
+
+.risk-medium {
+    background: rgba(241, 162, 8, 0.18);
+    color: #fff5d8;
+    border: 1px solid rgba(255, 208, 88, 0.24);
+}
+
+.risk-high {
+    background: rgba(223, 76, 67, 0.18);
+    color: #ffe4e2;
+    border: 1px solid rgba(255, 121, 111, 0.24);
 }
 
 .student-balance-chip span {
@@ -792,6 +834,24 @@ button.btn:hover,
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.student-signal-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.signal-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.84rem;
+}
+
 .action-box,
 .history-panel {
     padding: 18px;
@@ -841,6 +901,56 @@ button.btn:hover,
 
 .analytics-summary {
     grid-column: 1 / -1;
+}
+
+.ai-insights-panel {
+    padding: 24px;
+}
+
+.ai-insights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.ai-insight-card {
+    padding: 20px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f9ff 100%);
+    box-shadow: var(--shadow-md);
+}
+
+.ai-insight-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.ai-insight-top small {
+    color: var(--muted);
+}
+
+.ai-insight-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.7;
+}
+
+.ai-recommendation {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+
+.ai-recommendation span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--primary);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
 }
 
 .summary-grid {
@@ -1021,6 +1131,7 @@ button.btn:hover,
     .landing-hero,
     .overview-grid,
     .analytics-grid,
+    .ai-insights-grid,
     .auth-layout,
     .students-layout,
     .metric-grid,
@@ -1042,6 +1153,7 @@ button.btn:hover,
     .overview-hero,
     .page-hero,
     .feature-grid,
+    .ai-insights-grid,
     .metric-grid,
     .overview-grid,
     .analytics-grid,

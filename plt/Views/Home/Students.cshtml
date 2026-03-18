@@ -8,7 +8,7 @@
         <div>
             <span class="eyebrow">Управление учениками</span>
             <h1>Карточки учеников</h1>
-            <p>Добавляйте новых учеников, меняйте ставку, пополняйте баланс и отмечайте занятия в одном рабочем разделе.</p>
+            <p>Добавляйте новых учеников, меняйте ставку, пополняйте баланс, отмечайте занятия и фиксируйте пропуски в одном рабочем разделе.</p>
         </div>
         <div class="page-hero-side">
             <div class="mini-stat">
@@ -16,8 +16,8 @@
                 <strong>@Model.StudentsCount</strong>
             </div>
             <div class="mini-stat">
-                <span>Сумма на балансах</span>
-                <strong>@Model.TotalBalance.ToString("N2")</strong>
+                <span>В зоне риска</span>
+                <strong>@Model.Students.Count(x => x.ChurnRiskScore >= 40)</strong>
             </div>
         </div>
     </div>
@@ -46,7 +46,7 @@
             {
                 <div class="panel panel-empty-state">
                     <h2>Пока нет учеников</h2>
-                    <p>Добавьте первого ученика через форму слева. После этого здесь появятся контрастные рабочие карточки с финансовыми и учебными действиями.</p>
+                    <p>Добавьте первого ученика через форму слева. После этого ORLtrack начнет считать риски, историю занятий и финансовые метрики.</p>
                 </div>
             }
             else
@@ -62,9 +62,15 @@
                                     <p>@(string.IsNullOrWhiteSpace(student.Phone) ? student.Email ?? "Контакты не указаны" : student.Phone)</p>
                                 </div>
                             </div>
-                            <div class="student-balance-chip @(student.Balance >= student.LessonRate ? "is-healthy" : "is-warning")">
-                                <span>Баланс</span>
-                                <strong>@student.Balance.ToString("N2")</strong>
+                            <div class="student-card-right">
+                                <div class="risk-pill @(student.ChurnRiskLevel == "Высокий" ? "risk-high" : student.ChurnRiskLevel == "Средний" ? "risk-medium" : "risk-low")">
+                                    <span>Риск ухода</span>
+                                    <strong>@student.ChurnRiskScore%</strong>
+                                </div>
+                                <div class="student-balance-chip @(student.Balance >= student.LessonRate ? "is-healthy" : "is-warning")">
+                                    <span>Баланс</span>
+                                    <strong>@student.Balance.ToString("N2")</strong>
+                                </div>
                             </div>
                         </div>
 
@@ -82,12 +88,12 @@
                                 <strong>@student.TotalPaidIn.ToString("N2")</strong>
                             </div>
                             <div>
-                                <span>Списано</span>
-                                <strong>@student.TotalCharged.ToString("N2")</strong>
+                                <span>Дней без занятий</span>
+                                <strong>@student.DaysSinceLastLesson</strong>
                             </div>
                             <div>
-                                <span>Последнее занятие</span>
-                                <strong>@(student.LastLessonAtUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "ещё не было")</strong>
+                                <span>Пропусков</span>
+                                <strong>@student.RecentSkipsCount</strong>
                             </div>
                         </div>
 
@@ -126,6 +132,13 @@
                                 <input class="form-control" type="number" name="lessonRate" step="0.01" min="0.01" value="@student.LessonRate" required />
                                 <button type="submit" class="btn btn-ghost">Обновить ставку</button>
                             </form>
+                        </div>
+
+                        <div class="student-signal-list">
+                            @foreach (var signal in student.RiskSignals)
+                            {
+                                <span class="signal-chip">@signal</span>
+                            }
                         </div>
 
                         <div class="history-columns">

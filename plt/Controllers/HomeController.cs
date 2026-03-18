@@ -4,16 +4,22 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using plt.Models.Model;
 using plt.Models.ViewModel;
+using plt.Services.Ai;
 
 namespace plt.Controllers
 {
     public class HomeController : BaseController
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly IStudentRiskAiService _studentRiskAiService;
 
-        public HomeController(EducationDbContext context, ILogger<HomeController> logger) : base(context)
+        public HomeController(
+            EducationDbContext context,
+            ILogger<HomeController> logger,
+            IStudentRiskAiService studentRiskAiService) : base(context)
         {
             _logger = logger;
+            _studentRiskAiService = studentRiskAiService;
         }
 
         public async Task<IActionResult> Index()
@@ -38,6 +44,9 @@ namespace plt.Controllers
         public async Task<IActionResult> Analytics()
         {
             var model = await BuildDashboardAsync(CurrentUserId!.Value);
+            model.AiProviderName = _studentRiskAiService.ProviderName;
+            model.IsRussianAiConfigured = _studentRiskAiService.IsConfigured;
+            model.AiInsights = (await _studentRiskAiService.BuildInsightsAsync(model.Students)).ToList();
             return View(model);
         }
 
@@ -179,7 +188,7 @@ namespace plt.Controllers
                 TeacherId = CurrentUserId.Value,
                 LessonDateUtc = actualLessonDate,
                 ChargedAmount = student.LessonRate,
-                Comment = string.IsNullOrWhiteSpace(comment) ? "Занятие отмечено" : comment.Trim(),
+                Comment = string.IsNullOrWhiteSpace(comment) ? "Проведено занятие" : comment.Trim(),
                 CreatedAtUtc = DateTime.UtcNow
             });
 
@@ -270,16 +279,18 @@ namespace plt.Controllers
             var students = await _context.Students
                 .AsNoTracking()
                 .Where(x => x.TeacherId == userId)
-                .Include(x => x.Lessons.OrderByDescending(l => l.LessonDateUtc).Take(5))
-                .Include(x => x.Payments.OrderByDescending(p => p.PaymentDateUtc).Take(5))
+                .Include(x => x.Lessons.OrderByDescending(l => l.LessonDateUtc).Take(6))
+                .Include(x => x.Payments.OrderByDescending(p => p.PaymentDateUtc).Take(6))
                 .OrderByDescending(x => x.LastLessonAtUtc)
                 .ThenBy(x => x.FirstName)
                 .ToListAsync();
 
             var monthLessons = students
                 .SelectMany(x => x.Lessons)
-                .Where(x => x.LessonDateUtc >= monthStart)
+                .Where(x => x.LessonDateUtc >= monthStart && x.ChargedAmount > 0)
                 .ToList();
+
+            var mappedStudents = students.Select(MapStudentToDashboard).ToList();
 
             var activities = students
                 .SelectMany(student =>
@@ -305,44 +316,8 @@ namespace plt.Controllers
                         IsSkipped = lesson.ChargedAmount <= 0
                     })))
                 .OrderByDescending(x => x.EventDateUtc)
-                .Take(8)
+                .Take(10)
                 .ToList();
-
-            var mappedStudents = students.Select(x => new StudentDashboardItemViewModel
-            {
-                Id = x.Id,
-                FullName = BuildFullName(x.FirstName, x.LastName),
-                Initials = BuildInitials(x.FirstName, x.LastName),
-                Email = x.Email,
-                Phone = x.Phone,
-                Balance = x.Balance,
-                LessonRate = x.LessonRate,
-                LessonsAttendedCount = x.LessonsAttendedCount,
-                TotalPaidIn = x.TotalPaidIn,
-                TotalCharged = x.TotalCharged,
-                LastLessonAtUtc = x.LastLessonAtUtc,
-                RecentPayments = x.Payments
-                    .OrderByDescending(p => p.PaymentDateUtc)
-                    .Take(3)
-                    .Select(p => new StudentPaymentHistoryItemViewModel
-                    {
-                        Amount = p.Amount,
-                        PaymentDateUtc = p.PaymentDateUtc,
-                        Comment = p.Comment
-                    })
-                    .ToList(),
-                RecentLessons = x.Lessons
-                    .OrderByDescending(l => l.LessonDateUtc)
-                    .Take(3)
-                    .Select(l => new StudentLessonHistoryItemViewModel
-                    {
-                        ChargedAmount = l.ChargedAmount,
-                        LessonDateUtc = l.LessonDateUtc,
-                        Comment = l.Comment,
-                        IsSkipped = l.ChargedAmount <= 0
-                    })
-                    .ToList()
-            }).ToList();
 
             return new DashboardViewModel
             {
@@ -356,7 +331,7 @@ namespace plt.Controllers
                 MonthlyLessons = monthLessons.Count,
                 AverageLessonRate = mappedStudents.Any() ? mappedStudents.Average(x => x.LessonRate) : 0,
                 StudentsWithLowBalance = mappedStudents.Count(x => x.Balance < x.LessonRate && x.LessonRate > 0),
-                Students = mappedStudents,
+                Students = mappedStudents.OrderByDescending(x => x.ChurnRiskScore).ThenBy(x => x.FullName).ToList(),
                 TopStudents = mappedStudents
                     .OrderByDescending(x => x.TotalCharged)
                     .ThenByDescending(x => x.LessonsAttendedCount)
@@ -369,6 +344,114 @@ namespace plt.Controllers
                     .ToList(),
                 RecentActivities = activities
             };
+        }
+
+        private static StudentDashboardItemViewModel MapStudentToDashboard(Student student)
+        {
+            var fullName = BuildFullName(student.FirstName, student.LastName);
+            var recentLessons = student.Lessons.OrderByDescending(x => x.LessonDateUtc).Take(3).ToList();
+            var recentPayments = student.Payments.OrderByDescending(x => x.PaymentDateUtc).Take(3).ToList();
+
+            var lastPayment = student.Payments.OrderByDescending(x => x.PaymentDateUtc).FirstOrDefault();
+            var daysSinceLastLesson = student.LastLessonAtUtc.HasValue
+                ? (int)Math.Max(0, (DateTime.UtcNow - student.LastLessonAtUtc.Value).TotalDays)
+                : 999;
+            var daysSinceLastPayment = lastPayment != null
+                ? (int)Math.Max(0, (DateTime.UtcNow - lastPayment.PaymentDateUtc).TotalDays)
+                : 999;
+
+            var recentSkipsCount = student.Lessons.Count(x => x.ChargedAmount <= 0);
+            var recentPaidLessonsCount = student.Lessons.Count(x => x.ChargedAmount > 0);
+
+            var riskSignals = BuildRiskSignals(student, daysSinceLastLesson, daysSinceLastPayment, recentSkipsCount);
+            var riskScore = CalculateRiskScore(student, daysSinceLastLesson, daysSinceLastPayment, recentSkipsCount);
+
+            return new StudentDashboardItemViewModel
+            {
+                Id = student.Id,
+                FullName = fullName,
+                Initials = BuildInitials(student.FirstName, student.LastName),
+                Email = student.Email,
+                Phone = student.Phone,
+                Balance = student.Balance,
+                LessonRate = student.LessonRate,
+                LessonsAttendedCount = student.LessonsAttendedCount,
+                TotalPaidIn = student.TotalPaidIn,
+                TotalCharged = student.TotalCharged,
+                LastLessonAtUtc = student.LastLessonAtUtc,
+                DaysSinceLastLesson = daysSinceLastLesson,
+                DaysSinceLastPayment = daysSinceLastPayment,
+                RecentSkipsCount = recentSkipsCount,
+                RecentPaidLessonsCount = recentPaidLessonsCount,
+                ChurnRiskScore = riskScore,
+                ChurnRiskLevel = riskScore >= 70 ? "Высокий" : riskScore >= 40 ? "Средний" : "Низкий",
+                RiskSignals = riskSignals,
+                RecentPayments = recentPayments.Select(p => new StudentPaymentHistoryItemViewModel
+                {
+                    Amount = p.Amount,
+                    PaymentDateUtc = p.PaymentDateUtc,
+                    Comment = p.Comment
+                }).ToList(),
+                RecentLessons = recentLessons.Select(l => new StudentLessonHistoryItemViewModel
+                {
+                    ChargedAmount = l.ChargedAmount,
+                    LessonDateUtc = l.LessonDateUtc,
+                    Comment = l.Comment,
+                    IsSkipped = l.ChargedAmount <= 0
+                }).ToList()
+            };
+        }
+
+        private static int CalculateRiskScore(Student student, int daysSinceLastLesson, int daysSinceLastPayment, int recentSkipsCount)
+        {
+            var score = 5;
+
+            if (daysSinceLastLesson >= 30) score += 35;
+            else if (daysSinceLastLesson >= 14) score += 22;
+            else if (daysSinceLastLesson >= 7) score += 10;
+
+            if (daysSinceLastPayment >= 30) score += 18;
+            else if (daysSinceLastPayment >= 14) score += 10;
+
+            if (student.Balance < student.LessonRate && student.LessonRate > 0) score += 18;
+            if (recentSkipsCount >= 2) score += 20;
+            else if (recentSkipsCount == 1) score += 10;
+
+            if (student.LessonsAttendedCount == 0) score += 12;
+
+            return Math.Min(100, score);
+        }
+
+        private static List<string> BuildRiskSignals(Student student, int daysSinceLastLesson, int daysSinceLastPayment, int recentSkipsCount)
+        {
+            var signals = new List<string>();
+
+            if (daysSinceLastLesson >= 14)
+            {
+                signals.Add($"давно не было занятий: {daysSinceLastLesson} дн.");
+            }
+
+            if (daysSinceLastPayment >= 14)
+            {
+                signals.Add($"давно не было пополнений: {daysSinceLastPayment} дн.");
+            }
+
+            if (student.Balance < student.LessonRate && student.LessonRate > 0)
+            {
+                signals.Add("баланс ниже стоимости следующего урока");
+            }
+
+            if (recentSkipsCount > 0)
+            {
+                signals.Add($"пропусков в недавней истории: {recentSkipsCount}");
+            }
+
+            if (!signals.Any())
+            {
+                signals.Add("стабильная активность без явных тревожных признаков");
+            }
+
+            return signals;
         }
 
         private static string BuildFullName(string firstName, string lastName)

@@ -12,10 +12,13 @@ namespace plt.Models.ViewModel
         public int MonthlyLessons { get; set; }
         public decimal AverageLessonRate { get; set; }
         public int StudentsWithLowBalance { get; set; }
+        public bool IsRussianAiConfigured { get; set; }
+        public string AiProviderName { get; set; } = string.Empty;
         public List<StudentDashboardItemViewModel> Students { get; set; } = new();
         public List<StudentDashboardItemViewModel> TopStudents { get; set; } = new();
         public List<StudentDashboardItemViewModel> LowBalanceStudents { get; set; } = new();
         public List<ActivityFeedItemViewModel> RecentActivities { get; set; } = new();
+        public List<AiStudentInsightViewModel> AiInsights { get; set; } = new();
     }
 
     public class StudentDashboardItemViewModel
@@ -31,6 +34,13 @@ namespace plt.Models.ViewModel
         public decimal TotalPaidIn { get; set; }
         public decimal TotalCharged { get; set; }
         public DateTime? LastLessonAtUtc { get; set; }
+        public int DaysSinceLastLesson { get; set; }
+        public int DaysSinceLastPayment { get; set; }
+        public int RecentSkipsCount { get; set; }
+        public int RecentPaidLessonsCount { get; set; }
+        public int ChurnRiskScore { get; set; }
+        public string ChurnRiskLevel { get; set; } = "Низкий";
+        public List<string> RiskSignals { get; set; } = new();
         public List<StudentPaymentHistoryItemViewModel> RecentPayments { get; set; } = new();
         public List<StudentLessonHistoryItemViewModel> RecentLessons { get; set; } = new();
     }
@@ -59,5 +69,16 @@ namespace plt.Models.ViewModel
         public bool IsIncome { get; set; }
         public decimal Amount { get; set; }
         public bool IsSkipped { get; set; }
+    }
+
+    public class AiStudentInsightViewModel
+    {
+        public int StudentId { get; set; }
+        public string StudentName { get; set; } = string.Empty;
+        public int RiskScore { get; set; }
+        public string RiskLevel { get; set; } = string.Empty;
+        public string Summary { get; set; } = string.Empty;
+        public string Recommendation { get; set; } = string.Empty;
+        public string Provider { get; set; } = string.Empty;
     }
 }

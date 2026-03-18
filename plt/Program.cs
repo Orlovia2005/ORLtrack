@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using plt.Models.Model;
+using plt.Services.Ai;
 
 namespace plt
 {
@@ -12,13 +13,25 @@ namespace plt
 
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+            builder.Services.Configure<GigaChatOptions>(builder.Configuration.GetSection("GigaChat"));
+            builder.Services.AddHttpClient<IStudentRiskAiService, StudentRiskAiService>()
+                .ConfigurePrimaryHttpMessageHandler(sp =>
+                {
+                    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<GigaChatOptions>>().Value;
+                    var handler = new HttpClientHandler();
+                    if (options.IgnoreSslCertificateErrors)
+                    {
+                        handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+                    }
+
+                    return handler;
+                });
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
             builder.Services.AddDbContext<EducationDbContext>(options =>
                 options.UseNpgsql(connectionString));
 
-            builder.Services.AddHttpContextAccessor();
             builder.Services.AddControllersWithViews();
 
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

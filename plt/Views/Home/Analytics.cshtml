@@ -6,11 +6,58 @@
 <section class="analytics-page">
     <div class="page-hero compact">
         <div>
-            <span class="eyebrow">Аналитика</span>
-            <h1>Финансовая и учебная картина</h1>
-            <p>Раздел с быстрыми выводами: кто приносит основной доход, где проседает баланс и какие события произошли последними.</p>
+            <span class="eyebrow">AI-аналитика</span>
+            <h1>Риск оттока учеников</h1>
+            <p>ORLtrack рассчитывает риск ухода по активности ученика, а затем формирует текстовое объяснение через российскую нейросеть.</p>
+        </div>
+        <div class="page-hero-side">
+            <div class="mini-stat">
+                <span>AI-провайдер</span>
+                <strong>@(Model.IsRussianAiConfigured ? Model.AiProviderName : "Локальный fallback")</strong>
+            </div>
+            <div class="mini-stat">
+                <span>Учеников в риске</span>
+                <strong>@Model.Students.Count(x => x.ChurnRiskScore >= 40)</strong>
+            </div>
         </div>
     </div>
+
+    <section class="panel ai-insights-panel">
+        <div class="panel-heading">
+            <span>Нейросеть</span>
+            <h2>Выводы по самым рискованным ученикам</h2>
+        </div>
+
+        @if (Model.AiInsights.Any())
+        {
+            <div class="ai-insights-grid">
+                @foreach (var insight in Model.AiInsights)
+                {
+                    <article class="ai-insight-card">
+                        <div class="ai-insight-top">
+                            <div>
+                                <strong>@insight.StudentName</strong>
+                                <small>@insight.Provider</small>
+                            </div>
+                            <div class="risk-pill @GetRiskClass(insight.RiskLevel)">
+                                <span>@insight.RiskLevel</span>
+                                <strong>@insight.RiskScore%</strong>
+                            </div>
+                        </div>
+                        <p>@insight.Summary</p>
+                        <div class="ai-recommendation">
+                            <span>Рекомендация</span>
+                            <strong>@insight.Recommendation</strong>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="panel-empty">Для AI-анализа пока недостаточно данных по ученикам.</p>
+        }
+    </section>
 
     <div class="analytics-grid">
         <section class="panel panel-dark">
@@ -40,29 +87,29 @@
             }
             else
             {
-                <p class="panel-empty">Ещё нет данных для аналитики.</p>
+                <p class="panel-empty">Пока нет данных для аналитики.</p>
             }
         </section>
 
         <section class="panel">
             <div class="panel-heading">
                 <span>Риски</span>
-                <h2>Кому нужно пополнение</h2>
+                <h2>Кому нужно внимание</h2>
             </div>
 
-            @if (Model.LowBalanceStudents.Any())
+            @if (Model.Students.Any())
             {
                 <div class="analytics-warning-list">
-                    @foreach (var student in Model.LowBalanceStudents)
+                    @foreach (var student in Model.Students.OrderByDescending(x => x.ChurnRiskScore).Take(6))
                     {
                         <article class="warning-row">
                             <div>
                                 <strong>@student.FullName</strong>
-                                <small>Баланс ниже ставки за следующее занятие</small>
+                                <small>@string.Join(", ", student.RiskSignals.Take(2))</small>
                             </div>
                             <div class="warning-row-values">
-                                <span>@student.Balance.ToString("N2")</span>
-                                <small>Ставка: @student.LessonRate.ToString("N2")</small>
+                                <span>@student.ChurnRiskScore%</span>
+                                <small>@student.ChurnRiskLevel риск</small>
                             </div>
                         </article>
                     }
@@ -70,7 +117,7 @@
             }
             else
             {
-                <p class="panel-empty">Сейчас рисковых карточек нет.</p>
+                <p class="panel-empty">Пока нет учеников для оценки.</p>
             }
         </section>
 
@@ -101,3 +148,12 @@
         </section>
     </div>
 </section>
+
+@functions {
+    private string GetRiskClass(string riskLevel) => riskLevel switch
+    {
+        "Высокий" => "risk-high",
+        "Средний" => "risk-medium",
+        _ => "risk-low"
+    };
+}
