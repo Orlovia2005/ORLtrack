@@ -1,11 +1,32 @@
-﻿@using plt.Models.ViewModel
+@using plt.Models.ViewModel
 @model RegisterViewModel
 @{
     ViewData["Title"] = "Регистрация";
 }
-<div class="register-container">
-    <form asp-action="Register" method="post" class="form-card">
-        <h2 class="form-title">Регистрация</h2>
+
+<section class="auth-layout">
+    <div class="auth-visual">
+        <span class="eyebrow">Новый кабинет</span>
+        <h1>Запустите ORLtrack и соберите весь учебный учёт в одной системе</h1>
+        <p>После регистрации вы сможете вести учеников, фиксировать посещаемость, пополнять баланс и автоматически списывать оплату за занятия.</p>
+
+        <div class="auth-highlights">
+            <div class="auth-highlight">
+                <strong>Индивидуальная ставка</strong>
+                <span>Для каждого ученика можно задавать свою стоимость занятия.</span>
+            </div>
+            <div class="auth-highlight">
+                <strong>Понятные карточки</strong>
+                <span>Баланс, история и действия доступны без перегруженного интерфейса.</span>
+            </div>
+        </div>
+    </div>
+
+    <form asp-action="Register" method="post" class="auth-card">
+        <div class="section-heading">
+            <span>Регистрация</span>
+            <h2>Создайте аккаунт ORLtrack</h2>
+        </div>
 
         <div class="form-group">
             <label asp-for="Name">Имя</label>
@@ -27,9 +48,13 @@
             <input asp-for="Password" class="form-control" type="password" required />
         </div>
 
-
         <div class="form-group">
-            <button type="submit" class="btn-register">Зарегистрироваться</button>
+            <button type="submit" class="btn-register">Создать кабинет</button>
         </div>
+
+        <p class="auth-footnote">
+            Уже зарегистрированы?
+            <a asp-controller="Account" asp-action="Login">Войти</a>
+        </p>
     </form>
-</div>
+</section>

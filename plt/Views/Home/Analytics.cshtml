@@ -1,0 +1,103 @@
+@model plt.Models.ViewModel.DashboardViewModel
+@{
+    ViewData["Title"] = "Аналитика";
+}
+
+<section class="analytics-page">
+    <div class="page-hero compact">
+        <div>
+            <span class="eyebrow">Аналитика</span>
+            <h1>Финансовая и учебная картина</h1>
+            <p>Раздел с быстрыми выводами: кто приносит основной доход, где проседает баланс и какие события произошли последними.</p>
+        </div>
+    </div>
+
+    <div class="analytics-grid">
+        <section class="panel panel-dark">
+            <div class="panel-heading">
+                <span>Лидеры</span>
+                <h2>Топ учеников по выручке</h2>
+            </div>
+
+            @if (Model.TopStudents.Any())
+            {
+                <div class="analytics-student-list">
+                    @foreach (var student in Model.TopStudents)
+                    {
+                        <article class="analytics-student-item">
+                            <div class="student-avatar">@student.Initials</div>
+                            <div class="analytics-student-copy">
+                                <strong>@student.FullName</strong>
+                                <span>Занятий: @student.LessonsAttendedCount</span>
+                            </div>
+                            <div class="analytics-student-value">
+                                <small>Доход</small>
+                                <strong>@student.TotalCharged.ToString("N2")</strong>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="panel-empty">Ещё нет данных для аналитики.</p>
+            }
+        </section>
+
+        <section class="panel">
+            <div class="panel-heading">
+                <span>Риски</span>
+                <h2>Кому нужно пополнение</h2>
+            </div>
+
+            @if (Model.LowBalanceStudents.Any())
+            {
+                <div class="analytics-warning-list">
+                    @foreach (var student in Model.LowBalanceStudents)
+                    {
+                        <article class="warning-row">
+                            <div>
+                                <strong>@student.FullName</strong>
+                                <small>Баланс ниже ставки за следующее занятие</small>
+                            </div>
+                            <div class="warning-row-values">
+                                <span>@student.Balance.ToString("N2")</span>
+                                <small>Ставка: @student.LessonRate.ToString("N2")</small>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="panel-empty">Сейчас рисковых карточек нет.</p>
+            }
+        </section>
+
+        <section class="panel analytics-summary">
+            <div class="panel-heading">
+                <span>Итоги</span>
+                <h2>Сводка по кабинету</h2>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span>Доход за всё время</span>
+                    <strong>@Model.TotalRevenue.ToString("N2")</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Доход за месяц</span>
+                    <strong>@Model.MonthlyRevenue.ToString("N2")</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Всего занятий</span>
+                    <strong>@Model.TotalLessons</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Средняя ставка</span>
+                    <strong>@Model.AverageLessonRate.ToString("N2")</strong>
+                </div>
+            </div>
+        </section>
+    </div>
+</section>

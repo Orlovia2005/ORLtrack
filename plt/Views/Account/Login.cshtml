@@ -1,12 +1,32 @@
-﻿@using plt.Models.ViewModel
+@using plt.Models.ViewModel
 @model LoginViewModel
 @{
     ViewData["Title"] = "Вход";
 }
-<div class="register-container">
-    <form asp-action="Login" method="post" class="form-card">
-        <h2 class="form-title">Вход</h2>
 
+<section class="auth-layout">
+    <div class="auth-visual">
+        <span class="eyebrow">Вход в ORLtrack</span>
+        <h1>Вернитесь в рабочую панель без лишних действий</h1>
+        <p>Откройте кабинет преподавателя, чтобы отметить занятие, пополнить баланс ученика и сразу увидеть обновлённые метрики.</p>
+
+        <div class="auth-highlights">
+            <div class="auth-highlight">
+                <strong>Отдельные страницы</strong>
+                <span>Обзор, ученики и аналитика разведены по удобным разделам.</span>
+            </div>
+            <div class="auth-highlight">
+                <strong>Контроль денег</strong>
+                <span>Доходы, списания и пополнения собираются в единую картину.</span>
+            </div>
+        </div>
+    </div>
+
+    <form asp-action="Login" method="post" class="auth-card">
+        <div class="section-heading">
+            <span>Авторизация</span>
+            <h2>Вход в кабинет</h2>
+        </div>
 
         <div class="form-group">
             <label asp-for="Email">Email</label>
@@ -18,9 +38,13 @@
             <input asp-for="Password" class="form-control" type="password" required />
         </div>
 
-
         <div class="form-group">
-            <button type="submit" class="btn-register">Войти</button>
+            <button type="submit" class="btn-register">Войти в ORLtrack</button>
         </div>
+
+        <p class="auth-footnote">
+            Ещё нет аккаунта?
+            <a asp-controller="Account" asp-action="Register">Создать профиль</a>
+        </p>
     </form>
-</div>
+</section>

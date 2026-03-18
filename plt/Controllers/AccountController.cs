@@ -86,7 +86,7 @@ namespace plt.Controllers
                 model.Email = user.Email;
                 model.FirstName = user.Name;
                 model.SecondName = user.LastName;
-                model.AvatarUrl = user.AvatarUrl;
+                model.AvatarUrl = user.AvatarUrl ?? string.Empty;
                 model.Id = user.Id;
             }
             return View(model);
@@ -95,7 +95,11 @@ namespace plt.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateProfile(ProfileViewModel model, IFormFile avatar)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            {
+                return Unauthorized();
+            }
+
             var user = await _context.Users.FindAsync(userId);
 
             if (user == null) return NotFound();
@@ -110,7 +114,14 @@ namespace plt.Controllers
                 var fileName = $"{Guid.NewGuid()}{Path.GetExtension(avatar.FileName)}";
                 var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Images", fileName);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+                var directoryPath = Path.GetDirectoryName(filePath);
+                if (string.IsNullOrWhiteSpace(directoryPath))
+                {
+                    Notif_Error("Не удалось подготовить папку для сохранения аватара.");
+                    return RedirectToAction("Profile");
+                }
+
+                Directory.CreateDirectory(directoryPath);
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await avatar.CopyToAsync(stream);

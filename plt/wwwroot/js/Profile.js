@@ -10,24 +10,6 @@
         });
     });
 
-    // --- Показ уведомлений Bootstrap Toast ---
-    function showNotifications() {
-        // Автоматически показываем все toast с классом 'show'
-        const toasts = document.querySelectorAll('.toast.show');
-        toasts.forEach(toast => {
-            const bsToast = new bootstrap.Toast(toast);
-            bsToast.show();
-
-            // Автозакрытие через 5 секунд
-            setTimeout(() => {
-                bsToast.hide();
-            }, 5000);
-        });
-    }
-
-    // Запускаем показ уведомлений
-    showNotifications();
-
     // --- Аватар ---
     const avatarInput = document.getElementById("avatarInput");
     const avatarPreview = document.getElementById("avatarPreview");

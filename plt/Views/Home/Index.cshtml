@@ -1,8 +1,165 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model plt.Models.ViewModel.DashboardViewModel
+@{
+    ViewData["Title"] = Model.IsAuthenticated ? "Обзор" : "ORLtrack";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@if (!Model.IsAuthenticated)
+{
+    <section class="landing-shell">
+        <div class="landing-hero">
+            <div class="landing-copy">
+                <span class="eyebrow">ORLtrack</span>
+                <h1>Удобное пространство для преподавателя, где ученики и деньги под контролем</h1>
+                <p>Ведите учеников, отмечайте занятия со списанием баланса, пополняйте счёт и смотрите реальные показатели без таблиц и ручных подсчётов.</p>
+                <div class="hero-actions">
+                    <a class="btn" asp-controller="Account" asp-action="Register">Начать работу</a>
+                    <a class="btn btn-ghost" asp-controller="Account" asp-action="Login">У меня уже есть доступ</a>
+                </div>
+            </div>
+
+            <div class="hero-dashboard-preview">
+                <div class="preview-card preview-card-primary">
+                    <span>Ученики</span>
+                    <strong>24</strong>
+                    <small>Все карточки и действия в одном месте</small>
+                </div>
+                <div class="preview-card preview-card-secondary">
+                    <span>Месячный доход</span>
+                    <strong>84 500</strong>
+                    <small>Видно сразу после каждого занятия</small>
+                </div>
+                <div class="preview-card preview-card-tertiary">
+                    <span>Автоматизация</span>
+                    <strong>Баланс списывается сам</strong>
+                    <small>При отметке урока платформа обновляет метрики</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature-grid">
+            <article class="feature-panel">
+                <span>01</span>
+                <h2>Чистая карточка ученика</h2>
+                <p>Баланс, ставка, история пополнений и последние уроки собраны в одном компактном блоке.</p>
+            </article>
+            <article class="feature-panel">
+                <span>02</span>
+                <h2>Отдельные страницы</h2>
+                <p>Обзор, ученики и аналитика разведены по секциям, поэтому интерфейс легче воспринимать в работе.</p>
+            </article>
+            <article class="feature-panel">
+                <span>03</span>
+                <h2>Контрастный современный UI</h2>
+                <p>Карточки больше не сливаются с фоном: у ORLtrack появился более уверенный визуальный ритм.</p>
+            </article>
+        </div>
+    </section>
+}
+else
+{
+    <section class="overview-shell">
+        <div class="overview-hero">
+            <div>
+                <span class="eyebrow">Панель преподавателя</span>
+                <h1>Здравствуйте, @Model.UserName</h1>
+                <p>Быстрый обзор по ученикам, доходу и последним действиям. Для управления карточками переходите на страницу учеников.</p>
+            </div>
+            <div class="hero-cta-group">
+                <a class="btn" asp-controller="Home" asp-action="Students">Открыть учеников</a>
+                <a class="btn btn-ghost" asp-controller="Home" asp-action="Analytics">Смотреть аналитику</a>
+            </div>
+        </div>
+
+        <div class="metric-grid">
+            <article class="metric-tile">
+                <span>Учеников</span>
+                <strong>@Model.StudentsCount</strong>
+            </article>
+            <article class="metric-tile">
+                <span>Общий баланс</span>
+                <strong>@Model.TotalBalance.ToString("N2")</strong>
+            </article>
+            <article class="metric-tile">
+                <span>Доход за месяц</span>
+                <strong>@Model.MonthlyRevenue.ToString("N2")</strong>
+            </article>
+            <article class="metric-tile">
+                <span>Занятий за месяц</span>
+                <strong>@Model.MonthlyLessons</strong>
+            </article>
+            <article class="metric-tile">
+                <span>Средняя ставка</span>
+                <strong>@Model.AverageLessonRate.ToString("N2")</strong>
+            </article>
+            <article class="metric-tile metric-tile-alert">
+                <span>Низкий баланс</span>
+                <strong>@Model.StudentsWithLowBalance</strong>
+            </article>
+        </div>
+
+        <div class="overview-grid">
+            <section class="panel panel-dark">
+                <div class="panel-heading">
+                    <span>Последние события</span>
+                    <h2>Лента активности</h2>
+                </div>
+
+                @if (Model.RecentActivities.Any())
+                {
+                    <div class="activity-feed">
+                        @foreach (var activity in Model.RecentActivities)
+                        {
+                            <article class="activity-item">
+                                <div class="activity-marker @(activity.IsIncome ? "is-income" : activity.IsSkipped ? "is-skipped" : "is-expense")"></div>
+                                <div class="activity-copy">
+                                    <strong>@activity.StudentName</strong>
+                                    <span>@activity.Title</span>
+                                    <small>@activity.Subtitle</small>
+                                </div>
+                                <div class="activity-meta">
+                                    <strong>@(activity.IsSkipped ? "Без списания" : $"{(activity.IsIncome ? "+" : "-")}{activity.Amount:N2}")</strong>
+                                    <small>@activity.EventDateUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="panel-empty">Пока нет событий. Добавьте ученика или отметьте первое занятие.</p>
+                }
+            </section>
+
+            <section class="panel">
+                <div class="panel-heading">
+                    <span>Фокус</span>
+                    <h2>Ученики с низким балансом</h2>
+                </div>
+
+                @if (Model.LowBalanceStudents.Any())
+                {
+                    <div class="focus-student-list">
+                        @foreach (var student in Model.LowBalanceStudents)
+                        {
+                            <article class="focus-student-card">
+                                <div class="student-avatar">@student.Initials</div>
+                                <div class="focus-student-copy">
+                                    <strong>@student.FullName</strong>
+                                    <span>Баланс: @student.Balance.ToString("N2")</span>
+                                </div>
+                                <div class="focus-student-rate">
+                                    <small>Ставка</small>
+                                    <strong>@student.LessonRate.ToString("N2")</strong>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="panel-empty">Сейчас у всех учеников достаточно средств для следующего занятия.</p>
+                }
+            </section>
+        </div>
+    </section>
+}

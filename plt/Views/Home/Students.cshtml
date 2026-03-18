@@ -1,0 +1,179 @@
+@model plt.Models.ViewModel.DashboardViewModel
+@{
+    ViewData["Title"] = "Ученики";
+}
+
+<section class="students-page">
+    <div class="page-hero compact">
+        <div>
+            <span class="eyebrow">Управление учениками</span>
+            <h1>Карточки учеников</h1>
+            <p>Добавляйте новых учеников, меняйте ставку, пополняйте баланс и отмечайте занятия в одном рабочем разделе.</p>
+        </div>
+        <div class="page-hero-side">
+            <div class="mini-stat">
+                <span>Всего учеников</span>
+                <strong>@Model.StudentsCount</strong>
+            </div>
+            <div class="mini-stat">
+                <span>Сумма на балансах</span>
+                <strong>@Model.TotalBalance.ToString("N2")</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="students-layout">
+        <aside class="student-form-panel">
+            <div class="panel-heading">
+                <span>Новый ученик</span>
+                <h2>Добавление</h2>
+            </div>
+
+            <form asp-action="AddStudent" asp-controller="Home" method="post" class="stack-form">
+                @Html.AntiForgeryToken()
+                <input class="form-control" type="text" name="firstName" placeholder="Имя" required />
+                <input class="form-control" type="text" name="lastName" placeholder="Фамилия" />
+                <input class="form-control" type="email" name="email" placeholder="Email" />
+                <input class="form-control" type="text" name="phone" placeholder="Телефон" />
+                <input class="form-control" type="number" name="lessonRate" step="0.01" min="0.01" placeholder="Ставка за занятие" required />
+                <input class="form-control" type="number" name="startingBalance" step="0.01" min="0" placeholder="Стартовый баланс" />
+                <button type="submit" class="btn">Сохранить ученика</button>
+            </form>
+        </aside>
+
+        <div class="student-cards-grid">
+            @if (!Model.Students.Any())
+            {
+                <div class="panel panel-empty-state">
+                    <h2>Пока нет учеников</h2>
+                    <p>Добавьте первого ученика через форму слева. После этого здесь появятся контрастные рабочие карточки с финансовыми и учебными действиями.</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var student in Model.Students)
+                {
+                    <article class="student-work-card">
+                        <div class="student-work-card-top">
+                            <div class="student-card-headline">
+                                <div class="student-avatar">@student.Initials</div>
+                                <div>
+                                    <h2>@student.FullName</h2>
+                                    <p>@(string.IsNullOrWhiteSpace(student.Phone) ? student.Email ?? "Контакты не указаны" : student.Phone)</p>
+                                </div>
+                            </div>
+                            <div class="student-balance-chip @(student.Balance >= student.LessonRate ? "is-healthy" : "is-warning")">
+                                <span>Баланс</span>
+                                <strong>@student.Balance.ToString("N2")</strong>
+                            </div>
+                        </div>
+
+                        <div class="student-stat-band">
+                            <div>
+                                <span>Ставка</span>
+                                <strong>@student.LessonRate.ToString("N2")</strong>
+                            </div>
+                            <div>
+                                <span>Занятий</span>
+                                <strong>@student.LessonsAttendedCount</strong>
+                            </div>
+                            <div>
+                                <span>Пополнено</span>
+                                <strong>@student.TotalPaidIn.ToString("N2")</strong>
+                            </div>
+                            <div>
+                                <span>Списано</span>
+                                <strong>@student.TotalCharged.ToString("N2")</strong>
+                            </div>
+                            <div>
+                                <span>Последнее занятие</span>
+                                <strong>@(student.LastLessonAtUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "ещё не было")</strong>
+                            </div>
+                        </div>
+
+                        <div class="student-action-columns">
+                            <form asp-action="MarkLesson" asp-controller="Home" method="post" class="action-box action-box-dark">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="studentId" value="@student.Id" />
+                                <h3>Отметить занятие</h3>
+                                <input class="form-control" type="datetime-local" name="lessonDate" />
+                                <input class="form-control" type="text" name="comment" placeholder="Комментарий к занятию" />
+                                <button type="submit" class="btn">Списать @student.LessonRate.ToString("N2")</button>
+                            </form>
+
+                            <form asp-action="SkipLesson" asp-controller="Home" method="post" class="action-box action-box-muted">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="studentId" value="@student.Id" />
+                                <h3>Пропуск</h3>
+                                <input class="form-control" type="datetime-local" name="lessonDate" />
+                                <input class="form-control" type="text" name="comment" placeholder="Причина или комментарий" />
+                                <button type="submit" class="btn btn-ghost">Записать пропуск</button>
+                            </form>
+
+                            <form asp-action="AddBalance" asp-controller="Home" method="post" class="action-box">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="studentId" value="@student.Id" />
+                                <h3>Пополнить баланс</h3>
+                                <input class="form-control" type="number" name="amount" step="0.01" min="0.01" placeholder="Сумма" required />
+                                <input class="form-control" type="text" name="comment" placeholder="Комментарий к платежу" />
+                                <button type="submit" class="btn btn-accent">Пополнить</button>
+                            </form>
+
+                            <form asp-action="UpdateRate" asp-controller="Home" method="post" class="action-box">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="studentId" value="@student.Id" />
+                                <h3>Изменить ставку</h3>
+                                <input class="form-control" type="number" name="lessonRate" step="0.01" min="0.01" value="@student.LessonRate" required />
+                                <button type="submit" class="btn btn-ghost">Обновить ставку</button>
+                            </form>
+                        </div>
+
+                        <div class="history-columns">
+                            <section class="history-panel">
+                                <h3>Последние оплаты</h3>
+                                @if (student.RecentPayments.Any())
+                                {
+                                    <ul class="history-list">
+                                        @foreach (var payment in student.RecentPayments)
+                                        {
+                                            <li>
+                                                <strong>+@payment.Amount.ToString("N2")</strong>
+                                                <span>@payment.PaymentDateUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                                                <small>@(string.IsNullOrWhiteSpace(payment.Comment) ? "Без комментария" : payment.Comment)</small>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p class="panel-empty">История оплат пока пустая.</p>
+                                }
+                            </section>
+
+                            <section class="history-panel">
+                                <h3>Последние занятия</h3>
+                                @if (student.RecentLessons.Any())
+                                {
+                                    <ul class="history-list">
+                                        @foreach (var lesson in student.RecentLessons)
+                                        {
+                                            <li>
+                                                <strong>@(lesson.IsSkipped ? "Пропуск" : $"-{lesson.ChargedAmount:N2}")</strong>
+                                                <span>@lesson.LessonDateUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                                                <small>@(string.IsNullOrWhiteSpace(lesson.Comment) ? (lesson.IsSkipped ? "Занятие пропущено без списания" : "Без комментария") : lesson.Comment)</small>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p class="panel-empty">Пока нет проведённых занятий.</p>
+                                }
+                            </section>
+                        </div>
+                    </article>
+                }
+            }
+        </div>
+    </div>
+</section>

@@ -4,13 +4,13 @@ namespace plt.Models.ViewModel
     public class ProfileViewModel : BaseViewModel
     {
 
-        private string _firstName;
-        private string _secondName;
-        private string _email;
-        private string _oldPassword;
-        private string _newpassword;
-        private string _confirmNewpassword;
-        private string _avatarUrl;
+        private string _firstName = string.Empty;
+        private string _secondName = string.Empty;
+        private string _email = string.Empty;
+        private string _oldPassword = string.Empty;
+        private string _newpassword = string.Empty;
+        private string _confirmNewpassword = string.Empty;
+        private string _avatarUrl = string.Empty;
         private int _id;
 
         public string FirstName
