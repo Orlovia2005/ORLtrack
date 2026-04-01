@@ -1,0 +1,53 @@
+flowchart TD
+    start["Начало работы в ORLtrack"]
+
+    login["Вход в систему"]
+    dashboard["Открытие дашборда"]
+
+    addStudent["Сценарий 1<br/>Добавить ученика"]
+    fillStudent["Заполнить имя, контакт, ставку и баланс"]
+    saveStudent["Сохранить карточку ученика"]
+
+    payment["Сценарий 2<br/>Пополнить баланс"]
+    enterPayment["Указать сумму пополнения"]
+    savePayment["Сохранить платеж"]
+
+    lesson["Сценарий 3<br/>Отметить занятие"]
+    writeOff["Автоматически списать стоимость занятия"]
+    history["Обновить историю занятий и метрики"]
+
+    skip["Сценарий 4<br/>Зафиксировать пропуск"]
+    skipSave["Сохранить пропуск без списания"]
+
+    analytics["Сценарий 5<br/>Открыть аналитику"]
+    risk["Посмотреть уровень риска ученика"]
+    advice["Получить AI-рекомендацию"]
+
+    finish["Результат<br/>данные обновлены, метрики пересчитаны, преподаватель видит актуальное состояние учеников"]
+
+    start --> login
+    login --> dashboard
+
+    dashboard --> addStudent
+    addStudent --> fillStudent
+    fillStudent --> saveStudent
+    saveStudent --> finish
+
+    dashboard --> payment
+    payment --> enterPayment
+    enterPayment --> savePayment
+    savePayment --> finish
+
+    dashboard --> lesson
+    lesson --> writeOff
+    writeOff --> history
+    history --> finish
+
+    dashboard --> skip
+    skip --> skipSave
+    skipSave --> finish
+
+    dashboard --> analytics
+    analytics --> risk
+    risk --> advice
+    advice --> finish

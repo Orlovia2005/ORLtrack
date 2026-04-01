@@ -1,0 +1,20 @@
+flowchart LR
+    source["История данных ученика<br/>занятия, пропуски, пополнения, баланс"]
+    features["Формирование признаков<br/>дни с последнего занятия<br/>дни с последнего пополнения<br/>число пропусков<br/>уровень баланса"]
+    scoring["Локальный расчет risk score"]
+    level["Определение уровня риска<br/>низкий / средний / высокий"]
+    prompt["Формирование AI-запроса<br/>по самым рискованным ученикам"]
+    gigachat["GigaChat API"]
+    insight["AI-пояснение причин риска"]
+    recommendation["Рекомендация преподавателю<br/>связаться, напомнить, изменить график"]
+    ui["Страница аналитики ORLtrack"]
+
+    source --> features
+    features --> scoring
+    scoring --> level
+    level --> prompt
+    prompt --> gigachat
+    gigachat --> insight
+    insight --> recommendation
+    recommendation --> ui
+    level --> ui

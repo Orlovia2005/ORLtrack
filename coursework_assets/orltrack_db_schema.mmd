@@ -1,0 +1,40 @@
+erDiagram
+    User {
+        int Id PK
+        string Name
+        string Email
+        string PasswordHash
+        datetime CreatedAt
+    }
+
+    Student {
+        int Id PK
+        int UserId FK
+        string Name
+        string Contact
+        decimal Balance
+        decimal LessonRate
+        int LessonsCount
+        datetime CreatedAt
+    }
+
+    StudentLesson {
+        int Id PK
+        int StudentId FK
+        datetime Date
+        decimal Price
+        string Type
+        datetime CreatedAt
+    }
+
+    StudentPayment {
+        int Id PK
+        int StudentId FK
+        decimal Amount
+        datetime Date
+        datetime CreatedAt
+    }
+
+    User ||--o{ Student : "1:N one teacher -> many students"
+    Student ||--o{ StudentLesson : "1:N one student -> many lessons"
+    Student ||--o{ StudentPayment : "1:N one student -> many payments"

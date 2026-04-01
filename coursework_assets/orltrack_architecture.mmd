@@ -1,0 +1,32 @@
+flowchart LR
+    browser["Пользователь / Браузер"]
+
+    subgraph UI["Клиентский слой"]
+        views["Razor Views<br/>HTML / CSS / JS"]
+    end
+
+    subgraph APP["Сервер приложения ORLtrack"]
+        controllers["Controllers<br/>HomeController<br/>AccountController"]
+        viewmodels["ViewModels<br/>DashboardViewModel"]
+        services["Services<br/>StudentRiskAiService<br/>CurrentUserService"]
+        domain["Domain Models<br/>Student<br/>StudentLesson<br/>StudentPayment<br/>User"]
+        dbcontext["EducationDbContext<br/>Entity Framework Core"]
+    end
+
+    subgraph DATA["Слой данных"]
+        postgres["PostgreSQL<br/>Platforma"]
+    end
+
+    subgraph AI["Внешний AI-сервис"]
+        gigachat["GigaChat API"]
+    end
+
+    browser --> views
+    views --> controllers
+    controllers --> viewmodels
+    controllers --> services
+    controllers --> dbcontext
+    services --> dbcontext
+    dbcontext --> domain
+    dbcontext --> postgres
+    services --> gigachat
