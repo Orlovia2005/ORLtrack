@@ -7,6 +7,7 @@ namespace plt.Models.Model
         public int TeacherId { get; set; }
         public DateTime LessonDateUtc { get; set; }
         public decimal ChargedAmount { get; set; }
+        public bool IsMadeUp { get; set; }
         public string? Comment { get; set; }
         public DateTime CreatedAtUtc { get; set; }
 

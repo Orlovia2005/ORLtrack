@@ -103,6 +103,11 @@ namespace movieRecom.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsMadeUp")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<DateTime>("LessonDateUtc")
                         .HasColumnType("timestamp with time zone");
 

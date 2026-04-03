@@ -25,6 +25,19 @@
     <div class="students-layout">
         <aside class="student-form-panel">
             <div class="panel-heading">
+                <span>Пропуски</span>
+                <h2>Сводка по периоду</h2>
+            </div>
+
+            <form asp-action="Students" asp-controller="Home" method="get" class="stack-form absence-filter-form">
+                <label class="stack-label" for="absenceStartDate">Начало периода</label>
+                <input id="absenceStartDate" class="form-control" type="date" name="absenceStartDate" value="@Model.AbsencePeriodStartUtc.ToLocalTime().ToString("yyyy-MM-dd")" />
+                <label class="stack-label" for="absenceEndDate">Конец периода</label>
+                <input id="absenceEndDate" class="form-control" type="date" name="absenceEndDate" value="@Model.AbsencePeriodEndUtc.ToLocalTime().ToString("yyyy-MM-dd")" />
+                <button type="submit" class="btn btn-ghost">Показать пропуски</button>
+            </form>
+
+            <div class="panel-heading">
                 <span>Новый ученик</span>
                 <h2>Добавление</h2>
             </div>
@@ -95,6 +108,10 @@
                                 <span>Пропусков</span>
                                 <strong>@student.RecentSkipsCount</strong>
                             </div>
+                            <div>
+                                <span>За период</span>
+                                <strong>@student.FilteredMissedLessonsCount</strong>
+                            </div>
                         </div>
 
                         <div class="student-action-columns">
@@ -132,6 +149,12 @@
                                 <input class="form-control" type="number" name="lessonRate" step="0.01" min="0.01" value="@student.LessonRate" required />
                                 <button type="submit" class="btn btn-ghost">Обновить ставку</button>
                             </form>
+
+                            <div class="action-box action-box-info">
+                                <h3>Детали ученика</h3>
+                                <p class="action-box-copy">История пропусков, отметки об отработке, оплаты и последние занятия открываются на отдельной странице.</p>
+                                <a class="btn btn-ghost" asp-action="StudentDetails" asp-controller="Home" asp-route-id="@student.Id" asp-route-absenceStartDate="@Model.AbsencePeriodStartUtc.ToLocalTime().ToString("yyyy-MM-dd")" asp-route-absenceEndDate="@Model.AbsencePeriodEndUtc.ToLocalTime().ToString("yyyy-MM-dd")">Открыть страницу</a>
+                            </div>
                         </div>
 
                         <div class="student-signal-list">
@@ -139,50 +162,6 @@
                             {
                                 <span class="signal-chip">@signal</span>
                             }
-                        </div>
-
-                        <div class="history-columns">
-                            <section class="history-panel">
-                                <h3>Последние оплаты</h3>
-                                @if (student.RecentPayments.Any())
-                                {
-                                    <ul class="history-list">
-                                        @foreach (var payment in student.RecentPayments)
-                                        {
-                                            <li>
-                                                <strong>+@payment.Amount.ToString("N2")</strong>
-                                                <span>@payment.PaymentDateUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
-                                                <small>@(string.IsNullOrWhiteSpace(payment.Comment) ? "Без комментария" : payment.Comment)</small>
-                                            </li>
-                                        }
-                                    </ul>
-                                }
-                                else
-                                {
-                                    <p class="panel-empty">История оплат пока пустая.</p>
-                                }
-                            </section>
-
-                            <section class="history-panel">
-                                <h3>Последние занятия</h3>
-                                @if (student.RecentLessons.Any())
-                                {
-                                    <ul class="history-list">
-                                        @foreach (var lesson in student.RecentLessons)
-                                        {
-                                            <li>
-                                                <strong>@(lesson.IsSkipped ? "Пропуск" : $"-{lesson.ChargedAmount:N2}")</strong>
-                                                <span>@lesson.LessonDateUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
-                                                <small>@(string.IsNullOrWhiteSpace(lesson.Comment) ? (lesson.IsSkipped ? "Занятие пропущено без списания" : "Без комментария") : lesson.Comment)</small>
-                                            </li>
-                                        }
-                                    </ul>
-                                }
-                                else
-                                {
-                                    <p class="panel-empty">Пока нет проведённых занятий.</p>
-                                }
-                            </section>
                         </div>
                     </article>
                 }

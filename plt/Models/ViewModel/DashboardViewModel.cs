@@ -4,6 +4,8 @@ namespace plt.Models.ViewModel
     {
         public bool IsAuthenticated { get; set; }
         public string UserName { get; set; } = string.Empty;
+        public DateTime AbsencePeriodStartUtc { get; set; }
+        public DateTime AbsencePeriodEndUtc { get; set; }
         public int StudentsCount { get; set; }
         public decimal TotalBalance { get; set; }
         public int TotalLessons { get; set; }
@@ -40,9 +42,11 @@ namespace plt.Models.ViewModel
         public int RecentPaidLessonsCount { get; set; }
         public int ChurnRiskScore { get; set; }
         public string ChurnRiskLevel { get; set; } = "Низкий";
+        public int FilteredMissedLessonsCount { get; set; }
         public List<string> RiskSignals { get; set; } = new();
         public List<StudentPaymentHistoryItemViewModel> RecentPayments { get; set; } = new();
         public List<StudentLessonHistoryItemViewModel> RecentLessons { get; set; } = new();
+        public List<StudentLessonHistoryItemViewModel> FilteredMissedLessons { get; set; } = new();
     }
 
     public class StudentPaymentHistoryItemViewModel
@@ -54,10 +58,12 @@ namespace plt.Models.ViewModel
 
     public class StudentLessonHistoryItemViewModel
     {
+        public int Id { get; set; }
         public decimal ChargedAmount { get; set; }
         public DateTime LessonDateUtc { get; set; }
         public string? Comment { get; set; }
         public bool IsSkipped { get; set; }
+        public bool IsMadeUp { get; set; }
     }
 
     public class ActivityFeedItemViewModel

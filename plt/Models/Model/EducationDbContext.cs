@@ -89,6 +89,7 @@ namespace plt.Models.Model
                 entity.ToTable("StudentLessons");
 
                 entity.Property(e => e.ChargedAmount).HasPrecision(18, 2);
+                entity.Property(e => e.IsMadeUp).HasDefaultValue(false);
                 entity.Property(e => e.Comment).HasMaxLength(250);
 
                 entity.HasOne(e => e.Student)

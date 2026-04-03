@@ -34,9 +34,31 @@ namespace plt.Controllers
         }
 
         [Authorize]
-        public async Task<IActionResult> Students()
+        public async Task<IActionResult> Students(DateTime? absenceStartDate, DateTime? absenceEndDate)
         {
-            var model = await BuildDashboardAsync(CurrentUserId!.Value);
+            var model = await BuildDashboardAsync(CurrentUserId!.Value, absenceStartDate, absenceEndDate);
+            return View(model);
+        }
+
+        [Authorize]
+        public async Task<IActionResult> StudentDetails(int id, DateTime? absenceStartDate, DateTime? absenceEndDate)
+        {
+            if (CurrentUserId == null)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            var model = await BuildStudentDetailsAsync(CurrentUserId.Value, id, absenceStartDate, absenceEndDate);
+            if (model == null)
+            {
+                Notif_Error("Ученик не найден.");
+                return RedirectToAction(nameof(Students), new
+                {
+                    absenceStartDate = absenceStartDate?.ToString("yyyy-MM-dd"),
+                    absenceEndDate = absenceEndDate?.ToString("yyyy-MM-dd")
+                });
+            }
+
             return View(model);
         }
 
@@ -222,6 +244,7 @@ namespace plt.Controllers
                 TeacherId = CurrentUserId.Value,
                 LessonDateUtc = actualLessonDate,
                 ChargedAmount = 0,
+                IsMadeUp = false,
                 Comment = string.IsNullOrWhiteSpace(comment) ? "Пропуск занятия" : comment.Trim(),
                 CreatedAtUtc = DateTime.UtcNow
             });
@@ -229,6 +252,36 @@ namespace plt.Controllers
             await _context.SaveChangesAsync();
             Notif_Info($"Для {student.FirstName} записан пропуск без списания баланса.");
             return RedirectToAction(nameof(Students));
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateMissedLessonStatus(int lessonId, bool isMadeUp, DateTime? absenceStartDate, DateTime? absenceEndDate, int? studentId, bool returnToDetails = false)
+        {
+            if (CurrentUserId == null)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            var lesson = await _context.StudentLessons
+                .Include(x => x.Student)
+                .FirstOrDefaultAsync(x => x.Id == lessonId && x.TeacherId == CurrentUserId.Value && x.ChargedAmount <= 0);
+
+            if (lesson == null)
+            {
+                Notif_Error("Пропуск не найден.");
+                return RedirectAfterMissedLessonUpdate(studentId, returnToDetails, absenceStartDate, absenceEndDate);
+            }
+
+            lesson.IsMadeUp = isMadeUp;
+            await _context.SaveChangesAsync();
+
+            Notif_Success(isMadeUp
+                ? $"Пропуск для {lesson.Student.FirstName} отмечен как отработанный."
+                : $"Отметка об отработке для {lesson.Student.FirstName} снята.");
+
+            return RedirectAfterMissedLessonUpdate(studentId ?? lesson.StudentId, returnToDetails, absenceStartDate, absenceEndDate);
         }
 
         [Authorize]
@@ -272,9 +325,74 @@ namespace plt.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
-        private async Task<DashboardViewModel> BuildDashboardAsync(int userId)
+        private IActionResult RedirectAfterMissedLessonUpdate(int? studentId, bool returnToDetails, DateTime? absenceStartDate, DateTime? absenceEndDate)
+        {
+            if (returnToDetails && studentId.HasValue)
+            {
+                return RedirectToAction(nameof(StudentDetails), new
+                {
+                    id = studentId.Value,
+                    absenceStartDate = absenceStartDate?.ToString("yyyy-MM-dd"),
+                    absenceEndDate = absenceEndDate?.ToString("yyyy-MM-dd")
+                });
+            }
+
+            return RedirectToAction(nameof(Students), new
+            {
+                absenceStartDate = absenceStartDate?.ToString("yyyy-MM-dd"),
+                absenceEndDate = absenceEndDate?.ToString("yyyy-MM-dd")
+            });
+        }
+
+        private async Task<StudentDetailsViewModel?> BuildStudentDetailsAsync(int userId, int studentId, DateTime? absenceStartDate = null, DateTime? absenceEndDate = null)
+        {
+            var (normalizedAbsenceStart, normalizedAbsenceEnd) = NormalizeAbsencePeriod(absenceStartDate, absenceEndDate);
+
+            var student = await _context.Students
+                .AsNoTracking()
+                .Where(x => x.Id == studentId && x.TeacherId == userId)
+                .Include(x => x.Lessons.OrderByDescending(l => l.LessonDateUtc).Take(20))
+                .Include(x => x.Payments.OrderByDescending(p => p.PaymentDateUtc).Take(20))
+                .FirstOrDefaultAsync();
+
+            if (student == null)
+            {
+                return null;
+            }
+
+            var filteredMissedLessons = await _context.StudentLessons
+                .AsNoTracking()
+                .Where(x =>
+                    x.TeacherId == userId &&
+                    x.StudentId == studentId &&
+                    x.ChargedAmount <= 0 &&
+                    x.LessonDateUtc >= normalizedAbsenceStart &&
+                    x.LessonDateUtc <= normalizedAbsenceEnd)
+                .OrderByDescending(x => x.LessonDateUtc)
+                .Select(x => new StudentLessonHistoryItemViewModel
+                {
+                    Id = x.Id,
+                    ChargedAmount = x.ChargedAmount,
+                    LessonDateUtc = x.LessonDateUtc,
+                    Comment = x.Comment,
+                    IsSkipped = true,
+                    IsMadeUp = x.IsMadeUp
+                })
+                .ToListAsync();
+
+            return new StudentDetailsViewModel
+            {
+                UserName = User.Identity?.Name ?? "преподаватель",
+                AbsencePeriodStartUtc = normalizedAbsenceStart,
+                AbsencePeriodEndUtc = normalizedAbsenceEnd,
+                Student = MapStudentToDashboard(student, filteredMissedLessons, 10)
+            };
+        }
+
+        private async Task<DashboardViewModel> BuildDashboardAsync(int userId, DateTime? absenceStartDate = null, DateTime? absenceEndDate = null)
         {
             var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+            var (normalizedAbsenceStart, normalizedAbsenceEnd) = NormalizeAbsencePeriod(absenceStartDate, absenceEndDate);
 
             var students = await _context.Students
                 .AsNoTracking()
@@ -285,12 +403,39 @@ namespace plt.Controllers
                 .ThenBy(x => x.FirstName)
                 .ToListAsync();
 
+            var missedLessonsByStudent = await _context.StudentLessons
+                .AsNoTracking()
+                .Where(x =>
+                    x.TeacherId == userId &&
+                    x.ChargedAmount <= 0 &&
+                    x.LessonDateUtc >= normalizedAbsenceStart &&
+                    x.LessonDateUtc <= normalizedAbsenceEnd)
+                .OrderByDescending(x => x.LessonDateUtc)
+                .GroupBy(x => x.StudentId)
+                .ToDictionaryAsync(
+                    x => x.Key,
+                    x => x.Select(l => new StudentLessonHistoryItemViewModel
+                    {
+                        Id = l.Id,
+                        ChargedAmount = l.ChargedAmount,
+                        LessonDateUtc = l.LessonDateUtc,
+                        Comment = l.Comment,
+                        IsSkipped = true,
+                        IsMadeUp = l.IsMadeUp
+                    }).ToList());
+
             var monthLessons = students
                 .SelectMany(x => x.Lessons)
                 .Where(x => x.LessonDateUtc >= monthStart && x.ChargedAmount > 0)
                 .ToList();
 
-            var mappedStudents = students.Select(MapStudentToDashboard).ToList();
+            var mappedStudents = students
+                .Select(student => MapStudentToDashboard(
+                    student,
+                    missedLessonsByStudent.TryGetValue(student.Id, out var missedLessons)
+                        ? missedLessons
+                        : new List<StudentLessonHistoryItemViewModel>()))
+                .ToList();
 
             var activities = students
                 .SelectMany(student =>
@@ -323,6 +468,8 @@ namespace plt.Controllers
             {
                 IsAuthenticated = true,
                 UserName = User.Identity?.Name ?? "преподаватель",
+                AbsencePeriodStartUtc = normalizedAbsenceStart,
+                AbsencePeriodEndUtc = normalizedAbsenceEnd,
                 StudentsCount = mappedStudents.Count,
                 TotalBalance = mappedStudents.Sum(x => x.Balance),
                 TotalLessons = mappedStudents.Sum(x => x.LessonsAttendedCount),
@@ -346,11 +493,25 @@ namespace plt.Controllers
             };
         }
 
-        private static StudentDashboardItemViewModel MapStudentToDashboard(Student student)
+        private static (DateTime StartUtc, DateTime EndUtc) NormalizeAbsencePeriod(DateTime? absenceStartDate, DateTime? absenceEndDate)
+        {
+            var localToday = DateTime.Today;
+            var localStart = absenceStartDate?.Date ?? localToday.AddDays(-30);
+            var localEnd = absenceEndDate?.Date ?? localToday;
+
+            if (localEnd < localStart)
+            {
+                (localStart, localEnd) = (localEnd, localStart);
+            }
+
+            return (localStart.ToUniversalTime(), localEnd.AddDays(1).AddTicks(-1).ToUniversalTime());
+        }
+
+        private static StudentDashboardItemViewModel MapStudentToDashboard(Student student, List<StudentLessonHistoryItemViewModel> filteredMissedLessons, int recentHistoryTake = 3)
         {
             var fullName = BuildFullName(student.FirstName, student.LastName);
-            var recentLessons = student.Lessons.OrderByDescending(x => x.LessonDateUtc).Take(3).ToList();
-            var recentPayments = student.Payments.OrderByDescending(x => x.PaymentDateUtc).Take(3).ToList();
+            var recentLessons = student.Lessons.OrderByDescending(x => x.LessonDateUtc).Take(recentHistoryTake).ToList();
+            var recentPayments = student.Payments.OrderByDescending(x => x.PaymentDateUtc).Take(recentHistoryTake).ToList();
 
             var lastPayment = student.Payments.OrderByDescending(x => x.PaymentDateUtc).FirstOrDefault();
             var daysSinceLastLesson = student.LastLessonAtUtc.HasValue
@@ -385,6 +546,7 @@ namespace plt.Controllers
                 RecentPaidLessonsCount = recentPaidLessonsCount,
                 ChurnRiskScore = riskScore,
                 ChurnRiskLevel = riskScore >= 70 ? "Высокий" : riskScore >= 40 ? "Средний" : "Низкий",
+                FilteredMissedLessonsCount = filteredMissedLessons.Count,
                 RiskSignals = riskSignals,
                 RecentPayments = recentPayments.Select(p => new StudentPaymentHistoryItemViewModel
                 {
@@ -394,11 +556,14 @@ namespace plt.Controllers
                 }).ToList(),
                 RecentLessons = recentLessons.Select(l => new StudentLessonHistoryItemViewModel
                 {
+                    Id = l.Id,
                     ChargedAmount = l.ChargedAmount,
                     LessonDateUtc = l.LessonDateUtc,
                     Comment = l.Comment,
-                    IsSkipped = l.ChargedAmount <= 0
-                }).ToList()
+                    IsSkipped = l.ChargedAmount <= 0,
+                    IsMadeUp = l.IsMadeUp
+                }).ToList(),
+                FilteredMissedLessons = filteredMissedLessons
             };
         }
 
