@@ -5,6 +5,8 @@ VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "movieRecom", "plt\movieRecom.csproj", "{7DD00791-FD8C-4FC5-8CCF-5F3A44CD7F7F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ORLtrack.Tests", "ORLtrack.Tests\ORLtrack.Tests.csproj", "{C7717D2D-DDF5-49A9-A463-6949F29C182B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{7DD00791-FD8C-4FC5-8CCF-5F3A44CD7F7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7DD00791-FD8C-4FC5-8CCF-5F3A44CD7F7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7DD00791-FD8C-4FC5-8CCF-5F3A44CD7F7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7717D2D-DDF5-49A9-A463-6949F29C182B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7717D2D-DDF5-49A9-A463-6949F29C182B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7717D2D-DDF5-49A9-A463-6949F29C182B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7717D2D-DDF5-49A9-A463-6949F29C182B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
